@@ -2,9 +2,7 @@ import PySimpleGUI as sg
 import socketserver
 import threading
 import ssl
-
 stop_thread = False
-use_https = False
 
 class Handler(socketserver.BaseRequestHandler):
     def handle(self):
@@ -19,7 +17,7 @@ def connect(host, port, use_https):
         window['output'].print('Server started')
         if use_https:
             context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-            context.load_cert_chain(certfile='cert.pem', keyfile='key.pem')
+            context.load_cert_chain(certfile='./cert.pem', keyfile='./key.pem')
             with socketserver.TCPServer((host, port), Handler) as httpd:
                 httpd.allow_reuse_address = True
                 httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
@@ -27,7 +25,7 @@ def connect(host, port, use_https):
                     httpd.handle_request()
                     if stop_thread:
                         httpd.server_close()
-                        break
+            pass
         else:
             with socketserver.TCPServer((host, port), Handler) as httpd:
                 httpd.allow_reuse_address = True
@@ -42,11 +40,10 @@ def connect(host, port, use_https):
 def main():
     global window
     global stop_thread
-    global use_https
     layout = [
         [sg.Text('Host:'), sg.InputText(key='host', default_text='localhost')],
         [sg.Text('Port:'), sg.InputText(key='port', default_text='80')],
-        [sg.Checkbox('Use HTTPS', key='https', default=False)],
+        [sg.Checkbox("HTTPS", key="https")],
         [sg.Button('Start', key="connect"), sg.Button('Stop', key="stop"), sg.Button('Exit', key="exit")],
         [sg.Multiline(key='output', size=(80, 10), autoscroll=True, reroute_stdout=True, reroute_cprint=True, disabled=True)]
     ]
@@ -59,29 +56,26 @@ def main():
             stop_thread = True
             break
         elif event == 'connect':
-            use_https = values['https']
             window['output'].update(disabled=True)
             window['connect'].update(disabled=True)
             window['exit'].update(disabled=True)
             window['host'].update(disabled=True)
             window['port'].update(disabled=True)
             window['stop'].update(disabled=False)
-
-        if values['https'] == True:
-        threading.Thread(target=connect, args=(values['host'], int(values['port']), True)).start()
-        else:
-        threading.Thread(target=connect, args=(values['host'], int(values['port']), False)).start()
-        stop_thread = False
+            use_https = values["https"]
+            threading.Thread(target=connect, args=(values['host'], int(values['port']), use_https)).start()
+            stop_thread = False
         elif event == 'stop':
-        window['output'].update(disabled=True)
-        window['connect'].update(disabled=False)
-        window['exit'].update(disabled=False)
-        window['host'].update(disabled=False)
-        window['port'].update(disabled=False)
-        window['stop'].update(disabled=True)
-        window['output'].print('Server stopped')
-        stop_thread = True
-        window.close()
+            window['output'].update(disabled=True)
+            window['connect'].update(disabled=False)
+            window['exit'].update(disabled=False)
+            window['host'].update(disabled=False)
+            window['port'].update(disabled=False)
+            window['stop'].update(disabled=True)
+            window['output'].print('Server stopped')
+            stop_thread = True
+
+    window.close()
 
 if __name__ == '__main__':
     main()
